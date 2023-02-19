@@ -1,0 +1,50 @@
+name: auto-test
+
+on: 
+  push:
+
+jobs:
+  base-test:
+    runs-on: ubuntu-latest
+    outputs:
+       points: ${{ steps.tester.outputs.points}}
+    container:
+        image: duskmoon/dev-env:ucore-ci
+    steps:
+      - uses: actions/checkout@v3
+      - run: git clone https://github.com/LearningOS/uCore-Tutorial-Checker-2023S.git ucore-tutorial-ci 
+      - run: git clone https://github.com/LearningOS/uCore-Tutorial-Test-2023S.git ucore-tutorial-ci/workplace/user
+      - name: run test
+        id: tester
+        run: cd ucore-tutorial-ci && make test passwd=${{ secrets.BASE_TEST_TOKEN }} CHAPTER=`echo ${GITHUB_REF##*/} | grep -oP 'ch\K[0-9]'` | grep "Test passed" | grep -oP "\d{1,}/\d{1,}" | xargs -i echo "points={}" >> $GITHUB_OUTPUT
+    
+  deploy:
+    name: Deploy to pages
+    needs: base-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        continue-on-error: true
+        with:
+          ref: 'gh-pages'
+      - name: Save Log File
+        run: |
+          mkdir autograding_logs
+          cd autograding_logs
+          if [  -f "../latest.json"  ]; then
+              cp ../latest.json older.json
+          else
+              echo "{}" > older.json
+          fi
+          FILE_NAME=`date +%Y_%m_%d_%H_%M_%S`.txt
+          echo -ne "Points: ${{ needs.base-test.outputs.points }}" >> $FILE_NAME
+          cat older.json | jq ".${GITHUB_REF##*/} |= \"$FILE_NAME\"" > latest.json
+          rm older.json
+      - name: GitHub Pages
+        uses: crazy-max/ghaction-github-pages@v3
+        with:
+          target_branch: gh-pages
+          build_dir: autograding_logs
+          keep_history: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

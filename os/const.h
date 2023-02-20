@@ -9,4 +9,6 @@ enum {
 	STDERR = 2,
 };
 
+#define MAX_SYSCALL_NUM 500
+
 #endif // CONST_H

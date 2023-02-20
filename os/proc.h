@@ -2,6 +2,7 @@
 #define PROC_H
 
 #include "types.h"
+#include "const.h"
 
 #define NPROC (16)
 
@@ -35,14 +36,22 @@ struct proc {
 	uint64 kstack; // Virtual address of kernel stack
 	struct trapframe *trapframe; // data page for trampoline.S
 	struct context context; // swtch() here to run process
-	/*
-	* LAB1: you may need to add some new fields here
-	*/
+	uint32 syscall[MAX_SYSCALL_NUM];
+	int startcycle;
 };
 
-/*
-* LAB1: you may need to define struct for TaskInfo here
-*/
+typedef enum {
+	UnInit,
+	Ready,
+	Running,
+	Exited,
+} TaskStatus;
+
+typedef struct {
+	TaskStatus status;
+	unsigned int syscall_times[MAX_SYSCALL_NUM];
+	int time;
+} TaskInfo;
 
 struct proc *curr_proc();
 void exit(int);
@@ -51,6 +60,7 @@ void scheduler() __attribute__((noreturn));
 void sched();
 void yield();
 struct proc *allocproc();
+void get_taskinfo(TaskInfo *info);
 // swtch.S
 void swtch(struct context *, struct context *);
 

@@ -11,7 +11,7 @@ int finished()
 {
 	static int fin = 0;
 	if (++fin >= app_num)
-		panic("all apps over");
+		panic("all apps over\n");
 	return 0;
 }
 

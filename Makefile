@@ -116,6 +116,15 @@ debug: build/kernel .gdbinit
 	sleep 1
 	$(GDB)
 
+QEMUGDB1 = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
+	then echo "-gdb tcp::15234"; \
+	else echo "-s -p 15234"; fi)
+
+gdb: build/kernel .gdbinit
+	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB1) &
+	sleep 1
+	$(GDB)
+
 CHAPTER ?= $(shell git rev-parse --abbrev-ref HEAD | grep -oP 'ch\K[0-9]')
 
 BASE ?= 0

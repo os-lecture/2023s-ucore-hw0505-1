@@ -3,7 +3,7 @@
 
 #include "riscv.h"
 #include "types.h"
-
+#include "const.h"
 #define NPROC (16)
 
 // Saved registers for kernel context switches.
@@ -38,16 +38,26 @@ struct proc {
 	struct trapframe *trapframe; // data page for trampoline.S
 	struct context context; // swtch() here to run process
 	uint64 max_page;
-	uint64 program_brk;
-	uint64 heap_bottom;
-	/*
-	* LAB1: you may need to add some new fields here
-	*/
+	uint32 prio;
+    uint32 stride;
+	uint32 syscall[MAX_SYSCALL_NUM];
+	uint64 startcycle;
+
 };
 
-/*
-* LAB1: you may need to define struct for TaskInfo here
-*/
+typedef enum {
+	UnInit,
+	Ready,
+	Running,
+	Exited,
+} TaskStatus;
+
+typedef struct {
+	TaskStatus status;
+	unsigned int syscall_times[MAX_SYSCALL_NUM];
+	int time;
+} TaskInfo;
+
 
 struct proc *curr_proc();
 void exit(int);
@@ -56,9 +66,8 @@ void scheduler() __attribute__((noreturn));
 void sched();
 void yield();
 struct proc *allocproc();
+void get_taskinfo(TaskInfo *info);
 // swtch.S
 void swtch(struct context *, struct context *);
-
-int growproc(int n);
-
+int setpriority(long long prio);
 #endif // PROC_H

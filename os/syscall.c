@@ -4,7 +4,7 @@
 #include "syscall_ids.h"
 #include "timer.h"
 #include "trap.h"
-#include "proc.h"
+#include "vm.h"
 
 uint64 sys_write(int fd, uint64 va, uint len)
 {
@@ -33,7 +33,7 @@ uint64 sys_sched_yield()
 	return 0;
 }
 
-uint64 sys_gettimeofday(TimeVal *val, int _tz) // TODO: implement sys_gettimeofday in pagetable. (VA to PA)
+uint64 sys_gettimeofday(TimeVal *val, int _tz)
 {
 	// YOUR CODE
 	val->sec = 0;
@@ -47,38 +47,68 @@ uint64 sys_gettimeofday(TimeVal *val, int _tz) // TODO: implement sys_gettimeofd
 	return 0;
 }
 
-uint64 sys_sbrk(int n)
-{
-	uint64 addr;
-        struct proc *p = curr_proc();
-        addr = p->program_brk;
-        if(growproc(n) < 0)
-                return -1;
-        return addr;	
+uint64 sys_mmap(uint64 start, uint64 len, int port, int flag, int fd){
+    if((port>>3) != 0 || port == 0) return -1;
+    if(start%0x1000 != 0) return -1;
+    port = (port << 1) | (1ul<<4);
+    if(len % 0x1000 != 0) {
+        len = len / 0x1000 * 0x1000 + 0x1000;
+	}
+    for(int i=0;i<len / 0x1000;i++){
+        if(mappages(curr_proc()->pagetable,start+i*0x1000,0x1000,(uint64) kalloc(),port)){
+            return -1;
+        }
+    }
+    return 0;
 }
 
+uint64 sys_munmap(uint64 start, uint64 len){
+    if(start % 0x1000 != 0) return -1;
+    if(len % 0x1000 != 0) return -1;
+    uvmunmap(curr_proc()->pagetable, start, len / 4096, 0);
+    return 0;
+}
 
+uint64 sys_gettime(uint64 ts, int tz){
+    TimeVal* nts;
+    if(curr_proc()->pid < 1){
+        nts = (TimeVal*) walkaddr(curr_proc()->pagetable, ts);
+    }
+    else{
+        nts = (TimeVal*) useraddr(curr_proc()->pagetable, ts);
+    }
+    gettime(nts, tz);
+    return 0;
+}
 
-// TODO: add support for mmap and munmap syscall.
-// hint: read through docstrings in vm.c. Watching CH4 video may also help.
-// Note the return value and PTE flags (especially U,X,W,R)
-/*
-* LAB1: you may need to define sys_task_info here
-*/
+uint64 sys_set_priority(long long prio){
+    if(prio>=2){
+        if(setpriority(prio))
+            return prio;
+        else return -1;
+    }
+    return -1;
+}
+
+uint64 sys_task_info(uint64 info)
+{
+	TaskInfo* tt = (TaskInfo*) useraddr(curr_proc()->pagetable, info);
+	get_taskinfo(tt);
+	return 0;
+}
 
 extern char trap_page[];
 
 void syscall()
-{
+{	
 	struct trapframe *trapframe = curr_proc()->trapframe;
 	int id = trapframe->a7, ret;
 	uint64 args[6] = { trapframe->a0, trapframe->a1, trapframe->a2,
 			   trapframe->a3, trapframe->a4, trapframe->a5 };
 	tracef("syscall %d args = [%x, %x, %x, %x, %x, %x]", id, args[0],
 	       args[1], args[2], args[3], args[4], args[5]);
-	/*
-	* LAB1: you may need to update syscall counter for task info here
-	*/
+	if (0 <= id && id < MAX_SYSCALL_NUM)
+		curr_proc()->syscall[id]++;
 	switch (id) {
 	case SYS_write:
 		ret = sys_write(args[0], args[1], args[2]);
@@ -89,15 +119,21 @@ void syscall()
 	case SYS_sched_yield:
 		ret = sys_sched_yield();
 		break;
+	case SYS_mmap:
+		ret = sys_mmap(args[0],args[1],args[2],args[3],args[4]);
+		break;
+	case SYS_munmap:
+		ret = sys_munmap(args[0],args[1]);
+		break;
 	case SYS_gettimeofday:
-		ret = sys_gettimeofday((TimeVal *)args[0], args[1]);
+		ret = sys_gettime(args[0],args[1]);
 		break;
-	case SYS_sbrk:
-		ret = sys_sbrk(args[0]);
+	case SYS_setpriority:
+		ret = sys_set_priority(args[0]);
 		break;
-	/*
-	* LAB1: you may need to add SYS_taskinfo case here
-	*/
+	case SYS_task_info:
+		ret = sys_task_info(args[0]);
+		break;
 	default:
 		ret = -1;
 		errorf("unknown syscall %d", id);

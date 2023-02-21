@@ -32,5 +32,5 @@ enum {
 // memory layout end
 
 #define MAX_STR_LEN (200)
-
+#define MAX_SYSCALL_NUM 500
 #endif // CONST_H

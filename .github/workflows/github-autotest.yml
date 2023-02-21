@@ -14,14 +14,21 @@ jobs:
       - uses: actions/checkout@v3
       - run: git clone https://github.com/LearningOS/uCore-Tutorial-Checker-2023S.git ucore-tutorial-ci 
       - run: git clone https://github.com/LearningOS/uCore-Tutorial-Test-2023S.git ucore-tutorial-ci/workplace/user
-      - name: run test
-        id: tester
-        uses: mathiasvr/command-output@v1
+#       - name: run test
+#         id: tester
+#         uses: mathiasvr/command-output@v1
+#         with:
+#           run: cd ucore-tutorial-ci && make test passwd=${{ secrets.BASE_TEST_TOKEN }} CHAPTER=`echo ${GITHUB_REF##*/} | grep -oP 'ch\K[0-9]'`
+#       - name: end
+#         id: end
+#         run: echo '${{ steps.tester.outputs.stdout }}' | grep "Test passed" | grep -oP "\d{1,}/\d{1,}" | xargs -i echo "points={}" >> $GITHUB_OUTPUT
+      - uses: GuillaumeFalourd/command-output-file-action@v1
         with:
-          run: cd ucore-tutorial-ci && make test passwd=${{ secrets.BASE_TEST_TOKEN }} CHAPTER=`echo ${GITHUB_REF##*/} | grep -oP 'ch\K[0-9]'`
+          command_line: cd ucore-tutorial-ci && make test passwd=${{ secrets.BASE_TEST_TOKEN }} CHAPTER=`echo ${GITHUB_REF##*/} | grep -oP 'ch\K[0-9]'`
+          output_file_name: output.txt
       - name: end
         id: end
-        run: echo '${{ steps.tester.outputs.stdout }}' | grep "Test passed" | grep -oP "\d{1,}/\d{1,}" | xargs -i echo "points={}" >> $GITHUB_OUTPUT
+        run: echo output.txt | grep "Test passed" | grep -oP "\d{1,}/\d{1,}" | xargs -i echo "points={}" >> $GITHUB_OUTPUT
 
   deploy:
     name: Deploy to pages

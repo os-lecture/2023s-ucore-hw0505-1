@@ -21,7 +21,7 @@ jobs:
           run: cd ucore-tutorial-ci && make test passwd=${{ secrets.BASE_TEST_TOKEN }} CHAPTER=`echo ${GITHUB_REF##*/} | grep -oP 'ch\K[0-9]'`
       - name: end
         id: end
-        run: echo ${{ steps.tester.outputs.stdout }} | grep "Test passed" | grep -oP "\d{1,}/\d{1,}" | xargs -i echo "points={}" >> $GITHUB_OUTPUT
+        run: echo '${{ steps.tester.outputs.stdout }}' | grep "Test passed" | grep -oP "\d{1,}/\d{1,}" | xargs -i echo "points={}" >> $GITHUB_OUTPUT
 
   deploy:
     name: Deploy to pages

@@ -7,7 +7,7 @@ jobs:
   base-test:
     runs-on: ubuntu-latest
     outputs:
-      points: ${{ steps.end.outputs.points}}
+      points: ${{ steps.tester.outputs.points}}
     container:
         image: duskmoon/dev-env:ucore-ci
     steps:
@@ -16,13 +16,8 @@ jobs:
       - run: git clone https://github.com/LearningOS/uCore-Tutorial-Test-2023S.git ucore-tutorial-ci/workplace/user
       - name: run test
         id: tester
-        uses: mathiasvr/command-output@v1
-        with:
-          run: cd ucore-tutorial-ci && make test passwd=${{ secrets.BASE_TEST_TOKEN }} CHAPTER=`echo ${GITHUB_REF##*/} | grep -oP 'ch\K[0-9]'`
-      - name: end
-        id: end
-        run: echo "'${{ steps.tester.outputs.stdout }}'" | grep "Test passed" | grep -oP "\d{1,}/\d{1,}" | xargs -i echo "points={}" >> $GITHUB_OUTPUT
-
+        run: cd ucore-tutorial-ci && make test passwd=${{ secrets.BASE_TEST_TOKEN }} CHAPTER=`echo ${GITHUB_REF##*/} | grep -oP 'ch\K[0-9]'`  | grep "Test passed" | grep -oP "\d{1,}/\d{1,}" | xargs -i echo "points={}" >> $GITHUB_OUTPUT
+        
   deploy:
     name: Deploy to pages
     needs: base-test
@@ -54,7 +49,7 @@ jobs:
         uses: crazy-max/ghaction-github-pages@v3
         with:
           target_branch: gh-pages
-          build_dir: autograding_logs
+          build_dir: .
           keep_history: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

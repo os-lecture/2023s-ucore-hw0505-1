@@ -16,7 +16,7 @@ jobs:
       - run: git clone https://github.com/LearningOS/uCore-Tutorial-Test-2023S.git ucore-tutorial-ci/workplace/user
       - name: run test
         id: tester
-        run: cd ucore-tutorial-ci && make test passwd=${{ secrets.BASE_TEST_TOKEN }} CHAPTER=`echo ${GITHUB_REF##*/} | grep -oP 'ch\K[0-9]'` > output.txt 
+        run: cd ucore-tutorial-ci && make test passwd=${{ secrets.BASE_TEST_TOKEN }} CHAPTER=`echo ${GITHUB_REF##*/} | grep -oP 'ch\K[0-9]'` > ../output.txt 
       - name: end
         id: end
         run: cat output.txt | grep "Test passed" | grep -oP "\d{1,}/\d{1,}" | xargs -i echo "points={}" >> $GITHUB_OUTPUT
@@ -33,7 +33,6 @@ jobs:
         uses: yfblock/multi-rank-log@main
         with:
           points: ${{ needs.base-test.outputs.points }}
-          stop-if-fail: true
       - name: GitHub Pages
         uses: crazy-max/ghaction-github-pages@v3
         with:

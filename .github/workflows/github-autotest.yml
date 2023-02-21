@@ -32,19 +32,24 @@ jobs:
         continue-on-error: true
         with:
           ref: 'gh-pages'
+#       - name: Save Log File
+#         run: |
+#           mkdir autograding_logs
+#           cd autograding_logs
+#           if [  -f "../latest.json"  ]; then
+#               cp ../latest.json older.json
+#           else
+#               echo "{}" > older.json
+#           fi
+#           FILE_NAME=`date +%Y_%m_%d_%H_%M_%S`.txt
+#           echo -ne "Points: ${{ needs.base-test.outputs.points }}" >> $FILE_NAME
+#           cat older.json | jq ".${GITHUB_REF##*/} |= \"$FILE_NAME\"" > latest.json
+#           rm older.json
       - name: Save Log File
-        run: |
-          mkdir autograding_logs
-          cd autograding_logs
-          if [  -f "../latest.json"  ]; then
-              cp ../latest.json older.json
-          else
-              echo "{}" > older.json
-          fi
-          FILE_NAME=`date +%Y_%m_%d_%H_%M_%S`.txt
-          echo -ne "Points: ${{ needs.base-test.outputs.points }}" >> $FILE_NAME
-          cat older.json | jq ".${GITHUB_REF##*/} |= \"$FILE_NAME\"" > latest.json
-          rm older.json
+        uses: yfblock/multi-rank-log@main
+        with:
+          points: ${{ needs.base-test.outputs.points }}
+          stop-if-fail: true
       - name: GitHub Pages
         uses: crazy-max/ghaction-github-pages@v3
         with:
